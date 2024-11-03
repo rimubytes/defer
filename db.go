@@ -72,3 +72,53 @@ func (dm *DatabaseManager) Close() error {
 	}
 	return nil
 }
+
+// InitializeTable creates the attendees table if it doesn't exist
+func (dm *DatabaseManager) InitializeTable() error {
+    // Prepare the create table statement
+    stmt, err := dm.db.Prepare(CreateTableSQL)
+    if err != nil {
+        return fmt.Errorf("failed to prepare create table statement: %w", err)
+    }
+    defer stmt.Close()
+
+    	// Execute the create table statement
+	if _, err := stmt.Exec(); err != nil {
+		return fmt.Errorf("failed to create table: %w", err)
+	}
+
+	return nil
+}
+
+// ResetDatabase removes the existing database file and creates a new one
+func ResetDatabase(dbPath string) error {
+	// Remove existing database file
+	if err := os.Remove(dbPath); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to remove existing database: %w", err)
+	}
+	return nil
+}
+
+func main() {
+	// Construct database path
+	dbPath := filepath.Join(DbPath, DbFile)
+
+	// Reset database (remove existing file)
+	if err := ResetDatabase(dbPath); err != nil {
+		log.Fatalf("Failed to reset database: %v", err)
+	}
+
+	// Initialize database manager
+	dbManager, err := NewDatabaseManager(dbPath)
+	if err != nil {
+		log.Fatalf("Failed to initialize database manager: %v", err)
+	}
+	defer dbManager.Close() // Ensure database connection is closed
+
+	// Create attendees table
+	if err := dbManager.InitializeTable(); err != nil {
+		log.Fatalf("Failed to initialize table: %v", err)
+	}
+
+	log.Println("Successfully created attendees table")
+}
