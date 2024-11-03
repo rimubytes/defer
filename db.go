@@ -40,4 +40,35 @@ type DatabaseManager struct {
     path string
 }
 
-// New
+// NewDatabaseManager creates and initializes a new database manager
+func NewDatabaseManager(dbPath string) (*DatabaseManager, error) {
+	// Ensure database directory exists
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
+		return nil, fmt.Errorf("failed to create database directory: %w", err)
+	}
+
+	// Open database connection
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		db.Close() // Clean up on error
+		return nil, fmt.Errorf("failed to connect to database: %w", err)
+	}
+
+	return &DatabaseManager{
+		db:   db,
+		path: dbPath,
+	}, nil
+}
+
+// Close closes the database connection
+func (dm *DatabaseManager) Close() error {
+	if dm.db != nil {
+		return dm.db.Close()
+	}
+	return nil
+}
